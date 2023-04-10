@@ -27,8 +27,9 @@ class PlayerControl {
   vector3:THREE.Vector3 = new THREE.Vector3(0, 0, 0)
   quaternion:THREE.Quaternion = new THREE.Quaternion(0, 0, 0)
   immersing:boolean = false
+  animations:THREE.AnimationClip[] = []
 
-
+  
   constructor (scene: THREE.Scene, world: CANNON.World, camera: THREE.Camera) {
     this.scene = scene
     this.world = world
@@ -108,6 +109,73 @@ class PlayerControl {
 
 var last = 0
 
+
+const AnimationsEffect = {
+  Firing: 3, // 射击
+  FiringWalk: 4, // 步行射击
+  Idle: 1, // 站立
+  Shot: 100, // 死亡
+  Walking: 2, // 步行
+}
+
+class AnimationControl {
+  object3D?:THREE.Object3D
+  animationGroup = new THREE.AnimationObjectGroup() //创建动画对象组
+  animationClips:THREE.AnimationClip[] = []
+  mixer?:THREE.AnimationMixer
+  actions:{[key:string]: THREE.AnimationAction} = {}
+  currentAction?:THREE.AnimationAction
+  constructor (object3D?:THREE.Object3D, animationClips?:THREE.AnimationClip[], animationsEffect?:{[key:string]: number}) {
+    this.initialize(object3D, animationClips, animationsEffect)
+  }
+
+  setAnimationClips (animationClips?:THREE.AnimationClip[]) {
+    if (!this.mixer || !animationClips) return
+    const mixer = this.mixer
+    this.animationClips = animationClips
+    this.animationClips.forEach(clip => {      
+      console.log(clip.uuid, this)
+      this.actions[clip.name] = mixer.clipAction( clip )
+    })
+  }
+
+  setAnimationsEffect (animationsEffect?:{[key:string]: number}) {
+    if (!animationsEffect) return
+    Object.keys(this.actions).forEach(actionName => {
+      this.actions[actionName].setEffectiveWeight(animationsEffect[actionName] || 1)
+    })
+  }
+
+  initialize (object3D?:THREE.Object3D, animationClips?:THREE.AnimationClip[], animationsEffect?:{[key:string]: number}) {
+    if(object3D) {
+      this.object3D = object3D  
+      this.mixer = new THREE.AnimationMixer( this.object3D )
+    }
+    this.setAnimationClips(animationClips)
+    this.setAnimationsEffect(animationsEffect)
+  }
+
+  play (animationName:string) {
+    if (!this.mixer || !animationName) return
+    // 播放一个特定的动画
+    // const clip = THREE.AnimationClip.findByName( this.animationClips, animationName )
+    // const action = this.mixer.clipAction( clip )
+    // action.play()
+    const action = this.actions[animationName]
+    console.log(this.currentAction, action)
+    if (this.currentAction) {
+      this.currentAction.crossFadeTo(action, 1, false)
+    } else {
+      action.fadeIn(1)
+    }
+    this.currentAction = action
+  }
+
+  update (delta:number) {
+    this.mixer && this.mixer.update( delta )
+  }
+}
+
 export class Player {
   renderer: THREE.WebGLRenderer
   scene: THREE.Scene
@@ -126,6 +194,13 @@ export class Player {
   immersing:boolean = false
   // 射线
   raycaster = new THREE.Raycaster()
+  animationGroup = new THREE.AnimationObjectGroup() //创建动画对象组
+  animationClips:THREE.AnimationClip[] = []
+  mixer?:THREE.AnimationMixer
+  blod:number = 100 // 血量
+  animationControl:AnimationControl = new AnimationControl()
+  hotKeys:{[key:string]: boolean} = {}
+  firing: boolean = false
 
   constructor (renderer: THREE.WebGLRenderer, scene: THREE.Scene, world: CANNON.World, camera: THREE.Camera) {
     this.renderer = renderer
@@ -156,28 +231,38 @@ export class Player {
 
   keydown (event:KeyboardEvent) {
     console.log(event.key)
+    this.hotKeys[event.key] = true
     if (event.key === 'Escape') {
       this.immersing = false
     }
     if(event.key === 'w') {
       this.vertical = 1
+      this.speed = 1
+      this.animationControl.play('Walking')
     } else if(event.key === 's') {
-      this.vertical = -0.3
+      this.vertical = -1
+      this.speed = 0.3
     } 
     if (event.key === 'a') {
       this.horizontal = 1
+      this.speed = 0.5
     } else if (event.key === 'd') {
       this.horizontal = -1
+      this.speed = 0.5
     }
-    this.vector3.set(this.speed * this.horizontal * 0.5, 0, this.speed * this.vertical)
+    this.vector3.set(this.speed * this.horizontal, 0, this.speed * this.vertical)
+    this.animations()
   }
 
   keyup (event:KeyboardEvent) {
+    this.hotKeys[event.key] = false
     if(event.key === 'w' || event.key === 's') {
       this.vertical = 0
+      this.speed = 0
     }
     if(event.key === 'a' || event.key === 'd') {
       this.horizontal = 0
+      this.speed = 0
     }
     this.vector3.set(this.speed * this.horizontal * 0.5, 0, this.speed * this.vertical)
   }
@@ -250,6 +335,7 @@ export class Player {
     bullet.rigidBody.quaternion.copy(q as unknown as CANNON.Quaternion)
 
     this.bulletManger.fire(bullet, new THREE.Vector3(0, 0, 1))
+    this.hotKeys.firing = true
   }
 
 
@@ -270,11 +356,28 @@ export class Player {
     this.object3D.position.copy(this.rigidBody.position as unknown as THREE.Vector3)
     this.object3D.quaternion.copy(this.rigidBody.quaternion as unknown as THREE.Quaternion)
     this.bulletManger.update(delta)
+    this.animationControl.update( delta )
+    // this.animations()
+  }
+
+  animations () {
+    if (this.hotKeys.w && this.hotKeys.firing) {
+      this.hotKeys.firing = false
+      this.animationControl.play('FiringWalk')
+    }
+    if (this.hotKeys.w) {
+      this.animationControl.play('Walking')
+    }
+    if (this.blod <= 0) {
+      this.animationControl.play('Shot')
+    }
+    this.animationControl.play('Idle')
   }
 
   load() {
     loader.setDRACOLoader(dracoLoader)
     loader.load('/model/swat-guy2.glb', gltf => {
+      console.log(gltf.animations)
       gltf.scene.traverse((child) => {
         if (child instanceof THREE.Mesh && child.type === 'SkinnedMesh') {
           child.castShadow = true
@@ -287,10 +390,22 @@ export class Player {
       this.world.addBody(this.rigidBody)
       this.object3D = gltf.scene
       this.object3D.name = 'player'
+      this.animationControl.initialize(this.object3D, gltf.animations, AnimationsEffect)
+      // this.mixer = new THREE.AnimationMixer( this.object3D )
+      // this.animationClips = gltf.animations
       this.scene.add(this.object3D)
       this.loaded = true
     }, undefined, function (error) {
       console.error(error)
     })
   }
+
+  // play (animationName:string) {
+  //   if (!this.mixer || !animationName) return
+  //   // 播放一个特定的动画
+  //   const clip = THREE.AnimationClip.findByName( this.animationClips, animationName )
+  //   const action = this.mixer.clipAction( clip )
+  //   action.reset().repetitions = 1
+  //   action.play()
+  // }
 }
