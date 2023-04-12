@@ -5,10 +5,10 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader'
 import { threeToCannon, ShapeType } from 'three-to-cannon'
 import { Control } from './utils/control'
 import { Bullet, BulletManger } from './bullet'
-import {dev} from './config'
+import { dev } from './config'
 const loader = new GLTFLoader()
 const dracoLoader = new DRACOLoader()
-dracoLoader.setDecoderPath( '/three/examples/jsm/libs/draco/' )
+dracoLoader.setDecoderPath('/three/examples/jsm/libs/draco/')
 
 
 
@@ -20,24 +20,24 @@ class PlayerControl {
   scene: THREE.Scene
   world: CANNON.World
   camera: THREE.Camera
-  horizontal:number = 0
-  vertical:number = 0
-  up:number = 0
-  speed:number = 5
-  vector3:THREE.Vector3 = new THREE.Vector3(0, 0, 0)
-  quaternion:THREE.Quaternion = new THREE.Quaternion(0, 0, 0)
-  immersing:boolean = false
-  animations:THREE.AnimationClip[] = []
+  horizontal: number = 0
+  vertical: number = 0
+  up: number = 0
+  speed: number = 5
+  vector3: THREE.Vector3 = new THREE.Vector3(0, 0, 0)
+  quaternion: THREE.Quaternion = new THREE.Quaternion(0, 0, 0)
+  immersing: boolean = false
+  animations: THREE.AnimationClip[] = []
 
-  
-  constructor (scene: THREE.Scene, world: CANNON.World, camera: THREE.Camera) {
+
+  constructor(scene: THREE.Scene, world: CANNON.World, camera: THREE.Camera) {
     this.scene = scene
     this.world = world
     this.camera = camera
     this.initializeEvents()
   }
 
-  initializeEvents () {
+  initializeEvents() {
     control.addEventListener('keydown', this.keydown.bind(this))
     control.addEventListener('keyup', this.keyup.bind(this))
     control.addEventListener('pointerdown', this.pointerdown.bind(this))
@@ -45,16 +45,16 @@ class PlayerControl {
     control.addEventListener('pointermove', this.pointermove.bind(this))
   }
 
-  keydown (event:KeyboardEvent) {
+  keydown(event: KeyboardEvent) {
     console.log(event.key)
     if (event.key === 'Escape') {
       this.immersing = false
     }
-    if(event.key === 'w') {
+    if (event.key === 'w') {
       this.vertical = 1
-    } else if(event.key === 's') {
+    } else if (event.key === 's') {
       this.vertical = -0.3
-    } 
+    }
     if (event.key === 'a') {
       this.horizontal = 1
     } else if (event.key === 'd') {
@@ -63,28 +63,28 @@ class PlayerControl {
     this.vector3.set(this.speed * this.horizontal * 0.5, 0, this.speed * this.vertical)
   }
 
-  keyup (event:KeyboardEvent) {
-    if(event.key === 'w' || event.key === 's') {
+  keyup(event: KeyboardEvent) {
+    if (event.key === 'w' || event.key === 's') {
       this.vertical = 0
     }
-    if(event.key === 'a' || event.key === 'd') {
+    if (event.key === 'a' || event.key === 'd') {
       this.horizontal = 0
     }
     this.vector3.set(this.speed * this.horizontal * 0.5, 0, this.speed * this.vertical)
   }
 
-  pointerdown (event:PointerEvent) {
-    if(!this.immersing) {
+  pointerdown(event: PointerEvent) {
+    if (!this.immersing) {
       this.immersing = true
     }
     this.fire()
   }
 
-  pointerup (event:PointerEvent) {
+  pointerup(event: PointerEvent) {
 
   }
 
-  pointermove (event:PointerEvent) {
+  pointermove(event: PointerEvent) {
     if (!this.immersing) return
     const x = event.movementX / event.clientX * Math.PI
     const y = event.movementY / event.clientY * Math.PI
@@ -93,16 +93,16 @@ class PlayerControl {
     this.quaternion.setFromEuler(euler)
   }
 
-  fire () {
+  fire() {
     const bullet = new Bullet(new THREE.Vector3(10, 3, 10))
     this.scene.add(bullet.object3D)
   }
 
-  dispatch (name:string, params:any, callback:Function) {
+  dispatch(name: string, params: any, callback: Function) {
     callback(name, params)
   }
 
-  update (callback:(vector3:THREE.Vector3, quaternion:THREE.Quaternion) => void) {
+  update(callback: (vector3: THREE.Vector3, quaternion: THREE.Quaternion) => void) {
     callback(this.vector3, this.quaternion)
   }
 }
@@ -111,68 +111,108 @@ var last = 0
 
 
 const AnimationsEffect = {
-  Firing: 3, // 射击
-  FiringWalk: 4, // 步行射击
-  Idle: 1, // 站立
-  Shot: 100, // 死亡
-  Walking: 2, // 步行
+  Firing: {  // 射击
+    loop: THREE.LoopOnce,
+    weight: 1
+  },
+  FiringWalk: {  // 步行射击
+    loop: THREE.LoopOnce,
+    weight: 1
+  },
+  Idle: {  // 站立
+    loop: THREE.LoopRepeat,
+    weight: 1
+  },
+  Shot: {  // 死亡
+    loop: THREE.LoopOnce,
+    weight: 1
+  },
+  Walking: {  // 步行
+    loop: THREE.LoopRepeat,
+    weight: 1
+  }
+}
+
+interface Animator {
+  loop: THREE.AnimationActionLoopStyles,
+  weight: number
+}
+
+interface Animators {
+  [key: string]: Animator
+}
+
+interface ActiveAnimation {
+  name:string
+  action:THREE.AnimationAction
 }
 
 class AnimationControl {
-  object3D?:THREE.Object3D
+  model!: THREE.Object3D
   animationGroup = new THREE.AnimationObjectGroup() //创建动画对象组
-  animationClips:THREE.AnimationClip[] = []
-  mixer?:THREE.AnimationMixer
-  actions:{[key:string]: THREE.AnimationAction} = {}
-  currentAction?:THREE.AnimationAction
-  constructor (object3D?:THREE.Object3D, animationClips?:THREE.AnimationClip[], animationsEffect?:{[key:string]: number}) {
-    this.initialize(object3D, animationClips, animationsEffect)
+  animationClips: THREE.AnimationClip[] = []
+  animationsEffect!: Animators
+  mixer!: THREE.AnimationMixer
+  actions: { [key: string]: THREE.AnimationAction } = {}
+  activeAction?: THREE.AnimationAction
+  activeName?:string
+  active?:ActiveAnimation
+  constructor() {
+
   }
 
-  setAnimationClips (animationClips?:THREE.AnimationClip[]) {
-    if (!this.mixer || !animationClips) return
-    const mixer = this.mixer
+
+  setAnimation(clip: THREE.AnimationClip, animator: Animator) {
+    if (!this.mixer || !clip) return
+    const action = this.mixer.clipAction(clip)
+    // action.clampWhenFinished = true
+    action.loop = animator.loop
+    action.setEffectiveWeight(animator.weight)
+    this.actions[clip.name] = action
+  }
+
+  initialize(model: THREE.Object3D, animationClips: THREE.AnimationClip[], animationsEffect: Animators) {
+    this.model = model
+    this.mixer = new THREE.AnimationMixer(this.model)
+    this.animationsEffect = animationsEffect
     this.animationClips = animationClips
-    this.animationClips.forEach(clip => {      
-      console.log(clip.uuid, this)
-      this.actions[clip.name] = mixer.clipAction( clip )
+    this.animationClips.forEach(clip => {
+      this.setAnimation(clip, animationsEffect[clip.name])
     })
+    return this
   }
 
-  setAnimationsEffect (animationsEffect?:{[key:string]: number}) {
-    if (!animationsEffect) return
-    Object.keys(this.actions).forEach(actionName => {
-      this.actions[actionName].setEffectiveWeight(animationsEffect[actionName] || 1)
-    })
-  }
+  play(name: string, duration: number = 0.5) {
+    if (!this.mixer || !name) return
+    const previousActive = this.active
+    const activeAction = this.actions[name]
 
-  initialize (object3D?:THREE.Object3D, animationClips?:THREE.AnimationClip[], animationsEffect?:{[key:string]: number}) {
-    if(object3D) {
-      this.object3D = object3D  
-      this.mixer = new THREE.AnimationMixer( this.object3D )
+    if (!activeAction) return
+
+    if (previousActive) {
+      if (previousActive.name === name && this.animationsEffect[name].loop === THREE.LoopRepeat) {
+        return
+      }
+      if (previousActive.name !== name) {
+        previousActive.action.fadeOut(duration)
+      }
     }
-    this.setAnimationClips(animationClips)
-    this.setAnimationsEffect(animationsEffect)
-  }
 
-  play (animationName:string) {
-    if (!this.mixer || !animationName) return
-    // 播放一个特定的动画
-    // const clip = THREE.AnimationClip.findByName( this.animationClips, animationName )
-    // const action = this.mixer.clipAction( clip )
-    // action.play()
-    const action = this.actions[animationName]
-    console.log(this.currentAction, action)
-    if (this.currentAction) {
-      this.currentAction.crossFadeTo(action, 1, false)
-    } else {
-      action.fadeIn(1)
+    this.active = {
+      name,
+      action: activeAction
     }
-    this.currentAction = action
+    activeAction
+      .reset()
+      .setEffectiveTimeScale(1)
+      .setEffectiveWeight(1)
+      .fadeIn(duration)
+      .play()
+    return this
   }
 
-  update (delta:number) {
-    this.mixer && this.mixer.update( delta )
+  update(delta: number) {
+    this.mixer && this.mixer.update(delta)
   }
 }
 
@@ -181,28 +221,28 @@ export class Player {
   scene: THREE.Scene
   camera: THREE.Camera
   world: CANNON.World
-  object3D!:THREE.Object3D
+  object3D!: THREE.Object3D
   rigidBody!: CANNON.Body
-  loaded:boolean = false
-  bulletManger:BulletManger
-  horizontal:number = 0
-  vertical:number = 0
-  up:number = 0
-  speed:number = 5
-  vector3:THREE.Vector3 = new THREE.Vector3(0, 0, 0)
-  quaternion:THREE.Quaternion = new THREE.Quaternion(0, 0, 0)
-  immersing:boolean = false
+  loaded: boolean = false
+  bulletManger: BulletManger
+  horizontal: number = 0
+  vertical: number = 0
+  up: number = 0
+  speed: number = 5
+  vector3: THREE.Vector3 = new THREE.Vector3(0, 0, 0)
+  quaternion: THREE.Quaternion = new THREE.Quaternion(0, 0, 0)
+  immersing: boolean = false
   // 射线
   raycaster = new THREE.Raycaster()
   animationGroup = new THREE.AnimationObjectGroup() //创建动画对象组
-  animationClips:THREE.AnimationClip[] = []
-  mixer?:THREE.AnimationMixer
-  blod:number = 100 // 血量
-  animationControl:AnimationControl = new AnimationControl()
-  hotKeys:{[key:string]: boolean} = {}
+  animationClips: THREE.AnimationClip[] = []
+  mixer?: THREE.AnimationMixer
+  blod: number = 100 // 血量
+  animationControl: AnimationControl = new AnimationControl()
+  hotKeys: { [key: string]: boolean } = {}
   firing: boolean = false
 
-  constructor (renderer: THREE.WebGLRenderer, scene: THREE.Scene, world: CANNON.World, camera: THREE.Camera) {
+  constructor(renderer: THREE.WebGLRenderer, scene: THREE.Scene, world: CANNON.World, camera: THREE.Camera) {
     this.renderer = renderer
     this.scene = scene
     this.camera = camera
@@ -214,14 +254,14 @@ export class Player {
     this.bulletManger = new BulletManger(scene, world)
   }
 
-  initialize () {
+  initialize() {
     this.load()
     this.createSightBead()
     this.initializeEvents()
     return this
   }
 
-  initializeEvents () {
+  initializeEvents() {
     control.addEventListener('keydown', this.keydown.bind(this))
     control.addEventListener('keyup', this.keyup.bind(this))
     control.addEventListener('pointerdown', this.pointerdown.bind(this))
@@ -229,20 +269,18 @@ export class Player {
     control.addEventListener('pointermove', this.pointermove.bind(this))
   }
 
-  keydown (event:KeyboardEvent) {
-    console.log(event.key)
+  keydown(event: KeyboardEvent) {
     this.hotKeys[event.key] = true
     if (event.key === 'Escape') {
       this.immersing = false
     }
-    if(event.key === 'w') {
+    if (event.key === 'w') {
       this.vertical = 1
       this.speed = 1
-      this.animationControl.play('Walking')
-    } else if(event.key === 's') {
+    } else if (event.key === 's') {
       this.vertical = -1
       this.speed = 0.3
-    } 
+    }
     if (event.key === 'a') {
       this.horizontal = 1
       this.speed = 0.5
@@ -251,24 +289,23 @@ export class Player {
       this.speed = 0.5
     }
     this.vector3.set(this.speed * this.horizontal, 0, this.speed * this.vertical)
-    this.animations()
   }
 
-  keyup (event:KeyboardEvent) {
+  keyup(event: KeyboardEvent) {
     this.hotKeys[event.key] = false
-    if(event.key === 'w' || event.key === 's') {
+    if (event.key === 'w' || event.key === 's') {
       this.vertical = 0
       this.speed = 0
     }
-    if(event.key === 'a' || event.key === 'd') {
+    if (event.key === 'a' || event.key === 'd') {
       this.horizontal = 0
       this.speed = 0
     }
     this.vector3.set(this.speed * this.horizontal * 0.5, 0, this.speed * this.vertical)
   }
 
-  pointerdown (event:PointerEvent) {
-    if(!this.immersing) {
+  pointerdown(event: PointerEvent) {
+    if (!this.immersing) {
       this.immersing = true
     }
     const pointer = new THREE.Vector2()
@@ -281,7 +318,6 @@ export class Player {
     // 计算物体和射线的焦点
     const intersects = this.raycaster.intersectObjects(this.scene.children)
     if (intersects[0]) {
-      console.log(intersects[0])
       this.fire(intersects[0].point)
     }
     // for (let i = 0; i <intersects.length; i++ ) {
@@ -289,14 +325,14 @@ export class Player {
     //     targetPos = intersects[i].point
     //   }
     // }
-    
-  }
-
-  pointerup (event:PointerEvent) {
 
   }
 
-  pointermove (event:PointerEvent) {
+  pointerup(event: PointerEvent) {
+
+  }
+
+  pointermove(event: PointerEvent) {
     if (!this.immersing) return
     const x = event.movementX / event.clientX * Math.PI
     const y = event.movementY / event.clientY * Math.PI
@@ -305,19 +341,19 @@ export class Player {
     this.quaternion.setFromEuler(euler)
   }
 
-  createSightBead () {
-    const map = new THREE.TextureLoader().load( '/images/sightBead.png' )
-    const material = new THREE.SpriteMaterial( { 
+  createSightBead() {
+    const map = new THREE.TextureLoader().load('/images/sightBead.png')
+    const material = new THREE.SpriteMaterial({
       map: map,
       sizeAttenuation: false
-    } )
-    
-    const sprite = new THREE.Sprite( material )
+    })
+
+    const sprite = new THREE.Sprite(material)
     sprite.scale.set(0.2, 0.2, 1)
-    this.scene.add( sprite )
+    this.scene.add(sprite)
   }
 
-  fire (target:THREE.Vector3) {
+  fire(target: THREE.Vector3) {
     this.rigidBody.position
     this.object3D.up
     const pos = this.object3D.position.clone().setY(2)
@@ -330,20 +366,21 @@ export class Player {
 
     // bullet.object3D.lookAt(target)
     const mx = bullet.object3D.matrix.clone()
-    mx.lookAt(bullet.object3D.position,  target, bullet.object3D.up)
+    mx.lookAt(bullet.object3D.position, target, bullet.object3D.up)
     const q = new THREE.Quaternion().setFromRotationMatrix(mx)
     bullet.rigidBody.quaternion.copy(q as unknown as CANNON.Quaternion)
 
     this.bulletManger.fire(bullet, new THREE.Vector3(0, 0, 1))
     this.hotKeys.firing = true
+    this.animationControl.play('Firing')
   }
 
 
-  addScene (scene:THREE.Scene) {
+  addScene(scene: THREE.Scene) {
     this.scene = scene
   }
 
-  update (delta:number) {
+  update(delta: number) {
     if (!this.object3D || !this.rigidBody) return
     if (!dev) {
       const cameraPosition = this.object3D.localToWorld(new THREE.Vector3(0, 3, -2))
@@ -356,22 +393,25 @@ export class Player {
     this.object3D.position.copy(this.rigidBody.position as unknown as THREE.Vector3)
     this.object3D.quaternion.copy(this.rigidBody.quaternion as unknown as THREE.Quaternion)
     this.bulletManger.update(delta)
-    this.animationControl.update( delta )
+    this.animationControl.update(delta)
     // this.animations()
   }
 
-  animations () {
+  animations() {
     if (this.hotKeys.w && this.hotKeys.firing) {
       this.hotKeys.firing = false
       this.animationControl.play('FiringWalk')
-    }
-    if (this.hotKeys.w) {
+    } else if (this.hotKeys.firing) {
+      this.hotKeys.firing = false
+      this.animationControl.play('Firing')
+    } else if (this.hotKeys.w) {
       this.animationControl.play('Walking')
-    }
-    if (this.blod <= 0) {
+    } else if (this.blod <= 0) {
       this.animationControl.play('Shot')
+    } else {
+      this.animationControl.activeAction
+      this.animationControl.play('Idle')
     }
-    this.animationControl.play('Idle')
   }
 
   load() {
@@ -390,7 +430,7 @@ export class Player {
       this.world.addBody(this.rigidBody)
       this.object3D = gltf.scene
       this.object3D.name = 'player'
-      this.animationControl.initialize(this.object3D, gltf.animations, AnimationsEffect)
+      this.animationControl.initialize(this.object3D, gltf.animations, AnimationsEffect).play('Idle')
       // this.mixer = new THREE.AnimationMixer( this.object3D )
       // this.animationClips = gltf.animations
       this.scene.add(this.object3D)

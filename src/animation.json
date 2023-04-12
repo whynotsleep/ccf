@@ -1,0 +1,22 @@
+{
+  "Idle": {
+    "to": {
+      "Walking": "Walking",
+      "Firing": "Firing",
+      "FiringWalk": "FiringWalk",
+      "Shot": "Shot"
+    }
+  },
+  "Walking": {
+    
+  },
+  "Firing": {
+
+  },
+  "FiringWalk": {
+
+  },
+  "Shot": {
+
+  }
+}
