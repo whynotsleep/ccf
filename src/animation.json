@@ -1,22 +1,165 @@
 {
-  "Idle": {
-    "to": {
-      "Walking": "Walking",
-      "Firing": "Firing",
-      "FiringWalk": "FiringWalk",
-      "Shot": "Shot"
+
+  "animations": {
+    "Idle": {
+      "loop": 0,
+      "desc": "站立",
+      "weight": 1
+    },
+    "HoldIdle": {
+      "loop": 0,
+      "desc": "持枪站立",
+      "weight": 1
+    },
+    "JumpDown": {
+      "loop": 1,
+      "desc": "跳",
+      "weight": 0
+    },
+    "WalkingToDying": {
+      "loop": 1,
+      "desc": "死亡",
+      "weight": 0
+    },
+    "Walking": {
+      "loop": 0,
+      "desc": "前进步行",
+      "weight": 0
+    },
+    "WalkingBackwards": {
+      "loop": 0,
+      "desc": "后退步行",
+      "weight": 0
+    },
+    "WalkLeft": {
+      "loop": 0,
+      "desc": "左移步行",
+      "weight": 0
+    },
+    "WalkRight": {
+      "loop": 0,
+      "desc": "右移步行",
+      "weight": 0
+    },
+    "TowardRifleRun": {
+      "loop": 0,
+      "desc": "前进跑步",
+      "weight": 0
+    },
+    "BackwardsRifleRun": {
+      "loop": 0,
+      "desc": "后退跑步",
+      "weight": 0
+    },
+    "RunLeft": {
+      "loop": 0,
+      "desc": "左移跑步",
+      "weight": 0
+    },
+    "RunRight": {
+      "loop": 0,
+      "desc": "右移跑步",
+      "weight": 0
+    },
+    "CrouchIdle": {
+      "loop": 0,
+      "desc": "待机下蹲",
+      "weight": 0
+    },
+    "WalkCrouchingForward": {
+      "loop": 0,
+      "desc": "前进下蹲",
+      "weight": 0
+    },
+    "CrouchWalkingBackwards": {
+      "loop": 0,
+      "desc": "后退下蹲",
+      "weight": 0
+    },
+    "WalkCrouchingLeft": {
+      "loop": 0,
+      "desc": "左移下蹲",
+      "weight": 0
+    },
+    "WalkCrouchingRight": {
+      "loop": 0,
+      "desc": "右移下蹲",
+      "weight": 0
+    },
+    "ProneIdle": {
+      "loop": 0,
+      "desc": "趴下",
+      "weight": 0
+    },
+    "IdelFiringSingle": {
+      "loop": 1,
+      "desc": "站立点射",
+      "weight": 0
+    },
+    "RunFiringAuto": {
+      "loop": 0,
+      "desc": "站立自动射击",
+      "weight": 0
+    },
+    "WalkFiringRifleSingle": {
+      "loop": 1,
+      "desc": "前进步行点射",
+      "weight": 0
+    },
+    "TowardFiringRifle": {
+      "loop": 0,
+      "desc": "前进步行自动开火",
+      "weight": 0
+    },
+    "CrouchFiringRifle": {
+      "loop": 0,
+      "desc": "下蹲自动开火 ",
+      "weight": 0
+    },
+    "CrouchFireRifleSingle": {
+      "loop": 1,
+      "desc": "下蹲点射",
+      "weight": 0
+    },
+    "CrouchWalkFiringRifle": {
+      "loop": 0,
+      "desc": "下蹲步行开火",
+      "weight": 0
+    },
+    "ProneFiringRifle": {
+      "loop": 0,
+      "desc": "趴下点射",
+      "weight": 0
+    },
+    "ProneFiringRifleAuto": {
+      "loop": 0,
+      "desc": "趴下自动射击",
+      "weight": 0
+    },
+    "IdelReloading": {
+      "loop": 1,
+      "desc": "站立切换弹夹",
+      "weight": 0
+    },
+    "WalkReload": {
+      "loop": 1,
+      "desc": "步行切换弹夹",
+      "weight": 0
+    },
+    "RunReload": {
+      "loop": 1,
+      "desc": "跑步切换弹夹",
+      "weight": 0
+    },
+    "CrouchReload": {
+      "loop": 1,
+      "desc": "下蹲切换弹夹",
+      "weight": 0
+    },
+    "ProneReloading": {
+      "loop": 1,
+      "desc": "趴下切换弹夹",
+      "weight": 0
     }
-  },
-  "Walking": {
-    
-  },
-  "Firing": {
-
-  },
-  "FiringWalk": {
-
-  },
-  "Shot": {
-
   }
 }

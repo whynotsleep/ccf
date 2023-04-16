@@ -6,7 +6,7 @@ import * as CANNON from 'cannon-es'
 import { threeToCannon, ShapeType } from 'three-to-cannon'
 import CannonDebugger from 'cannon-es-debugger'
 import { Ticker } from './utils/ticker'
-import { SceneMap } from './sceneMap.ts'
+import { WorldMap } from './map'
 import { Player } from './player'
 import {dev} from './config'
 window.THREE = THREE
@@ -16,10 +16,11 @@ window.THREE = THREE
 
 const renderer = new THREE.WebGLRenderer()
 const scene = new THREE.Scene()
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 1000)
 const world = new CANNON.World()
 const cannonDebugger = CannonDebugger(scene, world)
 world.gravity.set(0, -9.82, 0) // m/s²
+// world.allowSleep = true
 camera.position.set(0, 20, 10)
 // camera.rotateX(-Math.PI / 2)
 renderer.setSize(window.innerWidth, window.innerHeight)
@@ -30,8 +31,17 @@ renderer.setPixelRatio(window.devicePixelRatio)
 scene.background = new THREE.Color(0xeeeeee)
 document.body.appendChild(renderer.domElement)
 const controls = new OrbitControls(camera, renderer.domElement)
-
-
+const cannonDefaultMaterial = new CANNON.Material()
+const cannonDefaultCantactMaterial = new CANNON.ContactMaterial(
+	cannonDefaultMaterial,
+	cannonDefaultMaterial,
+	{
+		friction: 0.5,
+		restitution: 0.7,
+	}
+)
+// 将两个默认材质添加到物理世界world中
+world.addContactMaterial(cannonDefaultCantactMaterial)
 
 // THREE.DefaultLoadingManager.onStart = function (url, itemsLoaded, itemsTotal) {
 // 	console.log('开始加载文件: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.')
@@ -47,7 +57,7 @@ const controls = new OrbitControls(camera, renderer.domElement)
 // }
 
 
-const sceneMap = new SceneMap(renderer, scene, world, camera).initialize()
+const sceneMap = new WorldMap(renderer, scene, world, camera).initialize()
 const player = new Player(renderer, scene, world, camera).initialize()
 
 
@@ -55,6 +65,8 @@ const player = new Player(renderer, scene, world, camera).initialize()
 const size = 500
 const divisions = 500
 const gridHelper = new THREE.GridHelper(size, divisions)
+gridHelper.name = 'gridHelper'
+gridHelper.layers.set(1)
 scene.add(gridHelper)
 
 
